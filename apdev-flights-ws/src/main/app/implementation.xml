@@ -9,6 +9,24 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd">
+    <flow name="getflightsflow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" doc:name="HTTP" allowedMethods="GET"/>
+        <flow-ref name="getDeltaFlightsFlow" doc:name=""/>
+        <logger level="INFO" doc:name="Logger"/>
+        
+         <choice-exception-strategy doc:name="implementationChoice_Exception_Strategy">
+            <catch-exception-strategy when="#[exception.causeMatches('com.mulesoft.weave.*')]" doc:name="No flights">
+                <set-payload value="No flights to #[flowVars.code + '\n' + exception]" doc:name="Set Payload"/>
+                <set-property propertyName="http.status" value="400" doc:name="Property"/>
+                <logger level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+            <catch-exception-strategy doc:name="Data unavailable">
+                <set-payload value="Data is UNAVAILABLE. TRY LATER #['\n' + exception]" doc:name="Set Payload"/>
+                <set-property propertyName="http.status" value="500" doc:name="Property"/>
+                <logger level="INFO" doc:name="Logger"/>
+            </catch-exception-strategy>
+        </choice-exception-strategy>
+    </flow>
     <sub-flow name="setCodeSubflow">
         <set-variable variableName="code" value="#[message.inboundProperties.'http.query.params'.code == empty ? 'SFO' : message.inboundProperties.'http.query.params'.code]" doc:name="setAirport"/>
     </sub-flow>
@@ -66,7 +84,7 @@ payload map ((payload01 , indexOfPayload01) -> {
     <flow name="getDeltaFlightsFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/delta" allowedMethods="GET" doc:name="HTTP"/>
         <flow-ref name="setCodeSubflow" doc:name="setCodeSubflow"/>
-        <dw:transform-message doc:name="Transform Message">
+         <dw:transform-message doc:name="Transform Message">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/xml
 %namespace ns0 http://soap.training.mulesoft.com/
@@ -95,5 +113,7 @@ payload.ns0#findFlightResponse.*return map ((return , indexOfReturn) -> {
 })]]></dw:set-payload>
         </dw:transform-message>
         <logger level="INFO" doc:name="Logger"/>
+       
+
     </flow>
 </mule>
