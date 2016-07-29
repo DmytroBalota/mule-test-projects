@@ -11,21 +11,10 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd">
     <flow name="getflightsflow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" doc:name="HTTP" allowedMethods="GET"/>
-        <flow-ref name="getDeltaFlightsFlow" doc:name=""/>
+        <flow-ref name="getDeltaFlightsFlow" doc:name="getDeltaFlightsFlow"/>
         <logger level="INFO" doc:name="Logger"/>
-        
-         <choice-exception-strategy doc:name="implementationChoice_Exception_Strategy">
-            <catch-exception-strategy when="#[exception.causeMatches('com.mulesoft.weave.*')]" doc:name="No flights">
-                <set-payload value="No flights to #[flowVars.code + '\n' + exception]" doc:name="Set Payload"/>
-                <set-property propertyName="http.status" value="400" doc:name="Property"/>
-                <logger level="INFO" doc:name="Logger"/>
-            </catch-exception-strategy>
-            <catch-exception-strategy doc:name="Data unavailable">
-                <set-payload value="Data is UNAVAILABLE. TRY LATER #['\n' + exception]" doc:name="Set Payload"/>
-                <set-property propertyName="http.status" value="500" doc:name="Property"/>
-                <logger level="INFO" doc:name="Logger"/>
-            </catch-exception-strategy>
-        </choice-exception-strategy>
+        <exception-strategy ref="implementationChoice_Exception_Strategy" doc:name="Reference Exception Strategy"/>        
+         
     </flow>
     <sub-flow name="setCodeSubflow">
         <set-variable variableName="code" value="#[message.inboundProperties.'http.query.params'.code == empty ? 'SFO' : message.inboundProperties.'http.query.params'.code]" doc:name="setAirport"/>
