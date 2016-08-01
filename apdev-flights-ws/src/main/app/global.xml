@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:context="http://www.springframework.org/schema/context" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:context="http://www.springframework.org/schema/context" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -15,9 +15,13 @@ http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/cu
         <http:raml-api-configuration location="https://anypoint.mulesoft.com/apiplatform/repository/v2/organizations/66217312-7184-4d14-bc8f-5a6fc65d2315/public/apis/74397/versions/77472/files/root"/>
     </http:request-config>
     <ws:consumer-config name="Delta_Web_Service_Consumer" service="TicketServiceService" port="TicketServicePort" serviceAddress="http://training-u.cloudhub.io/essentials/delta" wsdlLocation="http://mu.mulesoft-training.com/essentials/delta?wsdl" doc:name="Web Service Consumer"/>
+    <configuration defaultExceptionStrategy-ref="implementationChoice_Exception_Strategy" doc:name="Configuration">
+        <http:config useTransportForUris="false"/>
+    </configuration>
+    <payload-type-filter expectedType="java.util.List" name="Filter_Not_List" doc:name="Payload"/>
     
-    <choice-exception-strategy name="implementationChoice_Exception_Strategy" doc:name="implementationChoice_Exception_Strategy">
-            <catch-exception-strategy when="#[exception.causeMatches('com.mulesoft.weave.*')]" doc:name="No flights">
+    <choice-exception-strategy name="implementationChoice_Exception_Strategy" >
+            <catch-exception-strategy when="#[exception.causeMatches('com.mulesoft.weave.*') || exception.message == &quot;Payload is empty.&quot;]" doc:name="No flights">
                 <set-payload value="No flights to #[flowVars.code + '\n' + exception]" doc:name="Set Payload"/>
                 <set-property propertyName="http.status" value="400" doc:name="Property"/>
                 <logger level="INFO" doc:name="Logger"/>
