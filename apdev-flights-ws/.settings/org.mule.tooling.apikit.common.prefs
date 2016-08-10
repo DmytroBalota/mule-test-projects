@@ -1,0 +1,3 @@
+api_version={"apiId"\:"84583","apiName"\:"MUA Flights API","versionName"\:"1.0","versionId"\:"81851","deprecated"\:false,"description"\:"Returns flights for United. American flights\\r\\n","organizationId"\:"66217312-7184-4d14-bc8f-5a6fc65d2315","exportUrl"\:"https\://anypoint.mulesoft.com/apiplatform/repository/v2/organizations/66217312-7184-4d14-bc8f-5a6fc65d2315/apis/84583/versions/81851/files/export","rootFileId"\:"930755"}
+eclipse.preferences.version=1
+users=[{"token"\:"250942ea-4cb4-4bd5-9868-d30611367827","userId"\:"Dmytro_Balota","refreshToken"\:""}]
