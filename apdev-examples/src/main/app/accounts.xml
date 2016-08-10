@@ -12,6 +12,33 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
+    <batch:job name="pullDataBaseBatch">
+        <batch:input>
+            <poll doc:name="Poll">
+                <fixed-frequency-scheduler frequency="5" timeUnit="SECONDS"/>
+                <watermark variable="lastAccountID" default-expression="0" selector="MAX" selector-expression="#[payload.accountID]"/>
+                <db:select config-ref="MySQL_Configuration" doc:name="Database">
+                    <db:parameterized-query><![CDATA[select * from accounts where postal = '8888' and accountID > #[flowVars.lastAccountID]]]></db:parameterized-query>
+                </db:select>
+            </poll>
+        </batch:input>
+        <batch:process-records>
+            <batch:step name="Batch_Step3">
+                <enricher source="#[payload.size() &gt; 1]" target="#[recordVars.exists]" doc:name="Message Enricher">
+                    <db:select config-ref="MySQL_Configuration" doc:name="Check For Duplicate Names">
+                        <db:parameterized-query><![CDATA[select * from accounts where name = #[payload.Name]]]></db:parameterized-query>
+                    </db:select>
+                </enricher>
+                <logger level="INFO" doc:name="Logger"/>
+            </batch:step>
+            <batch:step name="Batch_Step2" accept-expression="#[recordVars.exists]">
+                <db:select config-ref="MySQL_Configuration" doc:name="Database">
+                    <db:parameterized-query><![CDATA[select * from accounts where name = #[payload.Name] and accountID != #[payload.accountID]]]></db:parameterized-query>
+                </db:select>
+                <logger message="#['\n\nRecord was inserted:' + payload + '\n\n\n' ]" level="INFO" doc:name="Logger"/>
+            </batch:step>
+        </batch:process-records>
+    </batch:job>
     <batch:job name="getCSVAccountsBatch">
         <batch:input>
             <file:inbound-endpoint path="src/main/resources/input" moveToPattern="#[message.inboundProperties.originalFilename].backup" moveToDirectory="src/main/resources/output" responseTimeout="10000" metadata:id="c52d7315-6e21-4599-bdcd-0c858ebbf4ac" doc:name="file">
@@ -32,11 +59,11 @@ payload]]></dw:set-payload>
                 <logger message="#[recordVars.rname]" level="INFO" doc:name="Logger"/>
             </batch:step>
             <batch:step name="Batch_Step1">
-                <logger level="INFO" doc:name="Logger"/>
+                <logger level="INFO" doc:name="Logger" message="#[recordVars.rname]"/>
             </batch:step>
         </batch:process-records>
     </batch:job>
-    <flow name="getCSVAccountsFlow">
+    <flow name="getCSVAccountsFlow" initialState="stopped">
         <file:inbound-endpoint path="src/main/resources/input" moveToPattern="#[message.inboundProperties.originalFilename].backup" moveToDirectory="src/main/resources/output" responseTimeout="10000" metadata:id="c52d7315-6e21-4599-bdcd-0c858ebbf4ac" doc:name="File">
             <file:filename-regex-filter pattern=".*csv" caseSensitive="false"/>
         </file:inbound-endpoint>
